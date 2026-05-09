@@ -127,7 +127,6 @@ The AI engine uses keyword scoring with confidence levels:
 | 🟡 Medium | review, request, update, fix, please check, follow up | "please review this change" |
 | 🟢 Low | FYI, no rush, whenever, suggestion, nice to have | "fyi no rush whenever you can" |
 
-Exclamation marks and ALL CAPS words add a +1 boost to the High score.
 
 ### API Endpoints
 
