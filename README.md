@@ -66,11 +66,11 @@ Sample row after classification:
 
 ---
 
-## Phase 1 — FastAPI Backend (09:00–12:00)
+## Phase 1 — FastAPI Backend
 
 ### Prerequisites
 - Python 3.10+
-- ngrok account (free) — [ngrok.com](https://ngrok.com)
+- ngrok account — [ngrok.com](https://ngrok.com)
 
 ### Setup
 
@@ -167,7 +167,7 @@ POST /classify/batch → classify multiple at once
 
 ---
 
-## Phase 2 — Google Sheets (12:00–13:00)
+## Phase 2 — Google Sheets 
 
 1. Go to [sheets.google.com](https://sheets.google.com) → New spreadsheet
 2. Name it **Request Classifier DB**
@@ -177,7 +177,7 @@ POST /classify/batch → classify multiple at once
 
 ---
 
-## Phase 3 — Power Automate Flow (13:00–15:30)
+## Phase 3 — Power Automate Flow 
 
 Go to [make.powerautomate.com](https://make.powerautomate.com) → Create → Instant cloud flow.
 
@@ -241,7 +241,7 @@ Save → test using the built-in Test button.
 
 ---
 
-## Phase 4 — Power Apps Canvas App (15:30–18:00)
+## Phase 4 — Power Apps Canvas App
 
 Go to [make.powerapps.com](https://make.powerapps.com) → Create → Blank canvas app.
 
@@ -314,37 +314,7 @@ Switch(
 )
 ```
 
----
 
-## Deployment (Permanent — no ngrok)
-
-### Railway (recommended — free)
-
-```bash
-# Add Procfile to your project folder
-echo "web: uvicorn main:app --host 0.0.0.0 --port \$PORT" > Procfile
-
-# Push to GitHub, then:
-# railway.app → New Project → Deploy from GitHub repo
-```
-
-Railway gives you a permanent `https://yourapp.railway.app` URL in ~2 minutes.
-
-**Alternatives:** Render.com, Fly.io, any VPS — all free tier compatible.
-
----
-
-## Demo Day Checklist
-
-- [ ] FastAPI running (`uvicorn main:app --reload`)
-- [ ] ngrok tunnel active (or permanent URL configured)
-- [ ] `python test_api.py` shows 4/4 passing
-- [ ] Google Sheets open in browser
-- [ ] Power Automate flow saved and enabled
-- [ ] Power Apps published and tested end-to-end
-- [ ] FastAPI `/docs` page open for judges
-
----
 
 ## Common Errors & Fixes
 
