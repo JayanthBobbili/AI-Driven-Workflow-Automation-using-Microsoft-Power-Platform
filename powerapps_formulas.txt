@@ -1,0 +1,111 @@
+// ═══════════════════════════════════════════════════════════════
+// POWER APPS FORMULA SHEET
+// Request Classifier — Canvas App
+// ═══════════════════════════════════════════════════════════════
+
+// ── 1. APP VARIABLES (paste in App.OnStart) ──────────────────
+Set(varFlowURL, "YOUR_POWER_AUTOMATE_HTTP_TRIGGER_URL");
+Set(varAppTitle, "Request Classifier");
+ClearCollect(colResults, []);
+
+// ── 2. SCREEN: SubmitScreen ───────────────────────────────────
+// Controls needed:
+//   txtRequestID   → Text input
+//   txtUserName    → Text input
+//   txtRequestText → Text input (multiline)
+//   drpCategory    → Dropdown  (Items: ["General","IT","HR","Finance","Operations"])
+//   btnSubmit      → Button
+//   lblStatus      → Label (shows feedback)
+
+// btnSubmit.OnSelect:
+Set(varLoading, true);
+Set(varStatus, "Submitting...");
+
+Set(varResponse,
+    PostJSON(
+        varFlowURL,
+        {
+            RequestID:   "REQ-" & Text(Now(), "YYYYMMDD-HHMMSS"),
+            UserName:    txtUserName.Text,
+            RequestText: txtRequestText.Text,
+            Category:    drpCategory.Selected.Value,
+            Status:      "Pending",
+            Timestamp:   Text(Now(), "YYYY-MM-DD HH:MM:SS")
+        }
+    )
+);
+
+If(
+    varResponse.success,
+    Set(varStatus, "✅ Submitted! AI Result: " & varResponse.ai_result &
+        " (" & Text(varResponse.confidence * 100, "0") & "% confidence)");
+    Collect(colResults, {
+        RequestID:   varResponse.request_id,
+        AIResult:    varResponse.ai_result,
+        Confidence:  varResponse.confidence,
+        Reason:      varResponse.reason,
+        Status:      "Classified",
+        SubmittedAt: Text(Now(), "HH:MM:SS")
+    }),
+    Set(varStatus, "❌ Error submitting. Please try again.")
+);
+
+Set(varLoading, false);
+
+// lblStatus.Text:
+varStatus
+
+// btnSubmit.DisplayMode:
+If(varLoading, DisplayMode.Disabled, DisplayMode.Edit)
+
+// ── 3. SCREEN: ResultsScreen ─────────────────────────────────
+// Controls needed:
+//   galResults  → Gallery (Items: colResults)
+//   lblEmpty    → Label  ("No results yet. Submit a request!")
+
+// galResults.Items:
+colResults
+
+// Inside gallery — label for AI Result badge color:
+// lblBadge.Fill:
+Switch(
+    ThisItem.AIResult,
+    "High Priority",   RGBA(220, 38,  38,  0.15),   // red tint
+    "Medium Priority", RGBA(234, 179, 8,   0.15),   // yellow tint
+    "Low Priority",    RGBA(34,  197, 94,  0.15),   // green tint
+    RGBA(148, 163, 184, 0.15)                       // gray fallback
+)
+
+// lblBadge.Color:
+Switch(
+    ThisItem.AIResult,
+    "High Priority",   RGBA(185, 28,  28,  1),
+    "Medium Priority", RGBA(161, 98,  7,   1),
+    "Low Priority",    RGBA(21,  128, 61,  1),
+    RGBA(71,  85,  105, 1)
+)
+
+// lblConfidence.Text (shows as percentage):
+Text(ThisItem.Confidence * 100, "0") & "% confident"
+
+// ── 4. VALIDATION (add to btnSubmit.OnSelect before PostJSON) ──
+If(
+    IsBlank(txtUserName.Text) || IsBlank(txtRequestText.Text),
+    Set(varStatus, "⚠️ Please fill in your name and request text.");
+    Set(varLoading, false);
+    false,
+    true   // proceed
+)
+
+// ── 5. CLEAR FORM (btnClear.OnSelect) ────────────────────────
+Reset(txtUserName);
+Reset(txtRequestText);
+Reset(drpCategory);
+Set(varStatus, "");
+
+// ── 6. NAVIGATE BETWEEN SCREENS ─────────────────────────────
+// btnGoToResults.OnSelect:
+Navigate(ResultsScreen, ScreenTransition.Slide)
+
+// btnGoToSubmit.OnSelect:
+Navigate(SubmitScreen, ScreenTransition.Slide)

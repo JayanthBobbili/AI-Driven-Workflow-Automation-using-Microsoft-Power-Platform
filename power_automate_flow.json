@@ -1,0 +1,118 @@
+{
+  "name": "Request_Classifier_Flow",
+  "description": "Receives HTTP trigger from Power Apps, writes to Google Sheets, calls FastAPI classifier, updates result row.",
+  "triggers": {
+    "manual": {
+      "type": "Request",
+      "kind": "Http",
+      "inputs": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "RequestID":   { "type": "string" },
+            "UserName":    { "type": "string" },
+            "RequestText": { "type": "string" },
+            "Category":    { "type": "string" },
+            "Status":      { "type": "string" },
+            "Timestamp":   { "type": "string" }
+          },
+          "required": ["RequestID", "UserName", "RequestText"]
+        }
+      }
+    }
+  },
+  "actions": {
+    "Add_row_to_Google_Sheets": {
+      "type": "ApiConnection",
+      "inputs": {
+        "host": {
+          "connectionName": "shared_googlesheet",
+          "operationId":    "InsertRow",
+          "apiId":          "/providers/Microsoft.PowerApps/apis/shared_googlesheet"
+        },
+        "parameters": {
+          "dataset":    "YOUR_SPREADSHEET_ID",
+          "table":      "Sheet1",
+          "item": {
+            "RequestID":   "@triggerBody()?['RequestID']",
+            "UserName":    "@triggerBody()?['UserName']",
+            "RequestText": "@triggerBody()?['RequestText']",
+            "Category":    "@triggerBody()?['Category']",
+            "Status":      "Pending",
+            "Timestamp":   "@utcNow()",
+            "AI_Result":   ""
+          }
+        }
+      },
+      "runAfter": {}
+    },
+    "Call_FastAPI_Classifier": {
+      "type": "Http",
+      "inputs": {
+        "method": "POST",
+        "uri":    "YOUR_NGROK_OR_SERVER_URL/classify",
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "request_id":   "@triggerBody()?['RequestID']",
+          "user_name":    "@triggerBody()?['UserName']",
+          "request_text": "@triggerBody()?['RequestText']",
+          "timestamp":    "@utcNow()"
+        }
+      },
+      "runAfter": { "Add_row_to_Google_Sheets": ["Succeeded"] }
+    },
+    "Parse_AI_Response": {
+      "type": "ParseJson",
+      "inputs": {
+        "content": "@body('Call_FastAPI_Classifier')",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "request_id":  { "type": "string" },
+            "ai_result":   { "type": "string" },
+            "category":    { "type": "string" },
+            "confidence":  { "type": "number" },
+            "reason":      { "type": "string" },
+            "status":      { "type": "string" }
+          }
+        }
+      },
+      "runAfter": { "Call_FastAPI_Classifier": ["Succeeded"] }
+    },
+    "Update_Google_Sheets_Row": {
+      "type": "ApiConnection",
+      "inputs": {
+        "host": {
+          "connectionName": "shared_googlesheet",
+          "operationId":    "UpdateRow",
+          "apiId":          "/providers/Microsoft.PowerApps/apis/shared_googlesheet"
+        },
+        "parameters": {
+          "dataset": "YOUR_SPREADSHEET_ID",
+          "table":   "Sheet1",
+          "id":      "@body('Add_row_to_Google_Sheets')?['RequestID']",
+          "item": {
+            "AI_Result": "@body('Parse_AI_Response')?['ai_result']",
+            "Status":    "Classified"
+          }
+        }
+      },
+      "runAfter": { "Parse_AI_Response": ["Succeeded"] }
+    },
+    "Return_Response": {
+      "type": "Response",
+      "inputs": {
+        "statusCode": 200,
+        "body": {
+          "success":    true,
+          "request_id": "@triggerBody()?['RequestID']",
+          "ai_result":  "@body('Parse_AI_Response')?['ai_result']",
+          "confidence": "@body('Parse_AI_Response')?['confidence']",
+          "reason":     "@body('Parse_AI_Response')?['reason']",
+          "status":     "Classified"
+        }
+      },
+      "runAfter": { "Update_Google_Sheets_Row": ["Succeeded"] }
+    }
+  }
+}
